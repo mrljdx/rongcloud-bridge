@@ -22,3 +22,20 @@ void rongCloudInit(const char *appKey, const char *region) {
     }
     [[RCCoreClient sharedCoreClient] initWithAppKey:key option:option];
 }
+
+void rongCloudConnect(const char *token, id<RongCloudConnectCallback> callback) {
+    NSString *tk = [NSString stringWithUTF8String:token ?: ""];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[RCCoreClient sharedCoreClient]
+                connectWithToken:tk
+                        dbOpened:^(RCDBErrorCode dbCode) {
+                            [callback onDBOpened:(int32_t)dbCode];
+                        }
+                         success:^(NSString *userId) {
+                             [callback onSuccess:[userId UTF8String]];
+                         }
+                           error:^(RCConnectErrorCode connCode) {
+                               [callback onError:(int32_t)connCode];
+                           }];
+    });
+}
