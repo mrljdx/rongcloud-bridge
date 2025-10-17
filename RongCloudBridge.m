@@ -39,3 +39,13 @@ void rongCloudConnect(const char *token, id<RongCloudConnectCallback> callback) 
                            }];
     });
 }
+
+void rongCloudDisconnect(bool allowPush) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (allowPush) {
+            [[RCCoreClient sharedCoreClient] disconnect:YES];   // 接收离线推送
+        } else {
+            [[RCCoreClient sharedCoreClient] disconnect];       // 停止推送
+        }
+    });
+}

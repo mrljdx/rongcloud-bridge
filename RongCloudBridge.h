@@ -12,3 +12,6 @@ void rongCloudInit(const char *appKey, const char *region);
 
 /* 供 Kotlin 调用的 C 接口 */
 void rongCloudConnect(const char *token, _Nullable id<RongCloudConnectCallback> callback);
+
+/** 断开连接 **/
+void rongCloudDisconnect(bool allowPush);
