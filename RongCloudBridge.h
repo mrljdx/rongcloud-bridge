@@ -10,8 +10,31 @@ void rongCloudInit(const char *appKey, const char *region);
 - (void)onError:(int32_t)connectErrorCode;    // RCConnectErrorCode
 @end
 
-/* 供 Kotlin 调用的 C 接口 */
-void rongCloudConnect(const char *token, _Nullable id<RongCloudConnectCallback> callback);
+/** 连接融云 **/
+void rongCloudConnect(const char *token, _Nullable id <RongCloudConnectCallback> callback);
 
 /** 断开连接 **/
 void rongCloudDisconnect(bool allowPush);
+
+/** 重连机制与重连互踢 **/
+void rongCloudReconnectEnable(bool enable);
+
+/** 获取当前连接状态，返回映射后的整数 **/
+int32_t rongCloudGetConnectionStatus(void);
+
+@protocol RCDatabaseUpgradeCallback <NSObject>
+- (void)upgradeWillStart;
+- (void)upgrading:(int32_t)progress;
+- (void)upgradeComplete:(int32_t)code;
+@end
+void rongCloudAddDatabaseStatusListener(id <RCDatabaseUpgradeCallback> listener);
+
+/** 获取当前 SDK 版本号 **/
+const char *rongCloudGetSDKVersion(void);
+
+/* Kotlin 侧定义的回调接口 */
+@protocol RCConnectionStatusListener <NSObject>
+- (void)onChanged:(int32_t)status;
+@end
+
+void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listener);
