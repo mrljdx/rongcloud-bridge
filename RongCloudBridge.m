@@ -207,7 +207,7 @@ void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listen
     });
 }
 
-void rongCloudSendMessage(int type, const char *targetId, const char *text, id <RCReceiveMessageListener> listener) {
+void rongCloudSendMessage(int type, const char *targetId, const char *text, id <RCSendMessageCallback> callback) {
     NSString *targetUserId = targetId ? [NSString stringWithUTF8String:targetId]
             : @"";
     NSString *content = text ? [NSString stringWithUTF8String:text]
@@ -250,12 +250,12 @@ void rongCloudSendMessage(int type, const char *targetId, const char *text, id <
                        //入库成功
                        NSLog(@"[RC] sendMessage attached (db ok) -> messageId=%ld",
                                successMessage.messageId);
-                       if (listener) {
+                       if (callback) {
                            RCMessageStruct s = {
                                    .messageId = successMessage.messageId,
                                    .targetId  = [successMessage.targetId UTF8String]   // 临时指针，block 内安全
                            };
-                           [listener onAttached:s];
+                           [callback onAttached:s];
                        }
 
                    }
@@ -263,25 +263,88 @@ void rongCloudSendMessage(int type, const char *targetId, const char *text, id <
                       //成功
                    NSLog(@"[RC] sendMessage success -> messageId=%ld",
                            successMessage.messageId);
-                   if (listener) {
+                   if (callback) {
                        RCMessageStruct s = {
                                .messageId = successMessage.messageId,
                                .targetId  = [successMessage.targetId UTF8String]
                        };
-                       [listener onSuccess:s];
+                       [callback onSuccess:s];
                    }
                }
                  errorBlock:^(RCErrorCode nErrorCode, RCMessage *errorMessage) {
                      //失败
                      NSLog(@"[RC] sendMessage error -> code=%ld, messageId=%ld",
                              (long)nErrorCode, errorMessage.messageId);
-                     if (listener) {
+                     if (callback) {
                          RCMessageStruct s = {
                                  .messageId = errorMessage.messageId,
                                  .targetId  = [errorMessage.targetId UTF8String]
                          };
-                         [listener onError:s errorCode:(int32_t)nErrorCode];
+                         [callback onError:s errorCode:(int32_t)nErrorCode];
                      }
                  }];
+    });
+}
+
+
+id <RCReceiveMessageListener> gRcReceiveMessageListener = NULL;
+
+@interface RongReceiveMessageListener : NSObject<RCIMClientReceiveMessageDelegate>
+@end
+
+// 详见：https://doc.rongcloud.cn/apidoc/imlibcore-ios/latest/zh_CN/documentation/rongimlibcore/rcimclientreceivemessagedelegate?language=objc
+@implementation RongReceiveMessageListener
+- (void) onReceived:(RCMessage *) message
+               left:(int) nLeft
+             object:(id) object
+            offline:(BOOL) offline
+         hasPackage:(BOOL) hasPackage {
+    NSLog(@"[RC] ⬇️ onReceived -> msgId=%ld, target=%@, left=%d, offline=%d",
+            message.messageId, message.targetId, nLeft, offline);
+
+    NSLog(@"[RC]     contentObj=%@ <%@>",
+            message.content,                 // 对象地址
+            NSStringFromClass([message.content class])); // 实际类型
+
+    /* 回传 Kotlin */
+    if (gRcReceiveMessageListener) {
+        /* 1. 取文本 */
+        NSString *text = @"";
+        if ([message.content isKindOfClass:[RCTextMessage class]]) {
+            RCTextMessage *textMsg = (RCTextMessage *)message.content;
+            text = textMsg.content ?: @"";
+        }
+        NSLog(@"[RC] onReceived -> messageId=%ld, text=%@", (long) message.messageId, text);
+        RCMessageStruct s = {
+                .messageId = message.messageId,
+                .targetId  = [message.targetId UTF8String],   // 临时指针，block 内安全
+                .content   = [text UTF8String]
+        };
+        [gRcReceiveMessageListener onReceive:s];
+    }
+}
+@end
+
+static RongReceiveMessageListener *gReceiveMessageDelegate = nil;
+
+void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (listener && listener != gRcReceiveMessageListener) {
+            // 先清理旧 delegate
+            if (gReceiveMessageDelegate) {
+                [[RCCoreClient sharedCoreClient] removeReceiveMessageDelegate:gReceiveMessageDelegate];
+                gReceiveMessageDelegate = nil;
+                NSLog(@"[RC] 🧹 removed old receive delegate");
+            }
+            gRcReceiveMessageListener = listener;
+            gReceiveMessageDelegate = [RongReceiveMessageListener new];
+            [[RCCoreClient sharedCoreClient] addReceiveMessageDelegate:gReceiveMessageDelegate];
+            NSLog(@"[RC] ✅ registered new receive delegate");
+        } else if (!listener && gReceiveMessageDelegate) {
+            [[RCCoreClient sharedCoreClient] removeReceiveMessageDelegate:gReceiveMessageDelegate];
+            gReceiveMessageDelegate = nil;
+            gReceiveMessageDelegate = nil;
+            NSLog(@"[RC] ❌ removed receive delegate");
+        }
     });
 }

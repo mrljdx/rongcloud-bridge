@@ -51,9 +51,10 @@ void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listen
 typedef struct {
     int64_t messageId;
     const char *_Nonnull targetId;
+    const char *_Nonnull content;
 } RCMessageStruct;
 
-@protocol RCReceiveMessageListener <NSObject>
+@protocol RCSendMessageCallback <NSObject>
 - (void)onAttached:(RCMessageStruct)message;
 
 - (void)onSuccess:(RCMessageStruct)message;
@@ -68,4 +69,10 @@ typedef struct {
  * @param targetId : 目标用户ID
  * @param text : 文本内容
  */
-void rongCloudSendMessage(int type, const char *targetId, const char *text, id <RCReceiveMessageListener> listener);
+void rongCloudSendMessage(int type, const char *targetId, const char *text, id <RCSendMessageCallback> callback);
+
+@protocol RCReceiveMessageListener <NSObject>
+- (void)onReceive:(RCMessageStruct)message;
+@end
+
+void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener);
