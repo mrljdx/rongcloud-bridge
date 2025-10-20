@@ -45,6 +45,22 @@ const char *rongCloudGetSDKVersion(void);
 /** 添加连接状态的监听 **/
 void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listener);
 
+/**
+ * 定义参考Kotlin RCMessage
+ */
+typedef struct {
+    int64_t messageId;
+    const char *_Nonnull targetId;
+} RCMessageStruct;
+
+@protocol RCReceiveMessageListener <NSObject>
+- (void)onAttached:(RCMessageStruct)message;
+
+- (void)onSuccess:(RCMessageStruct)message;
+
+- (void)onError:(RCMessageStruct)message
+        errorCode:(int32_t)errorCode;
+@end
 
 /***
  * 发送一条消息
@@ -52,4 +68,4 @@ void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listen
  * @param targetId : 目标用户ID
  * @param text : 文本内容
  */
-void rongCloudSendMessage(int type, const char *targetId, const char *text);
+void rongCloudSendMessage(int type, const char *targetId, const char *text, id <RCReceiveMessageListener> listener);

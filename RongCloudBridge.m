@@ -207,7 +207,7 @@ void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listen
     });
 }
 
-void rongCloudSendMessage(int type, const char *targetId, const char *text) {
+void rongCloudSendMessage(int type, const char *targetId, const char *text, id <RCReceiveMessageListener> listener) {
     NSString *targetUserId = targetId ? [NSString stringWithUTF8String:targetId]
             : @"";
     NSString *content = text ? [NSString stringWithUTF8String:text]
@@ -250,16 +250,38 @@ void rongCloudSendMessage(int type, const char *targetId, const char *text) {
                        //入库成功
                        NSLog(@"[RC] sendMessage attached (db ok) -> messageId=%ld",
                                successMessage.messageId);
+                       if (listener) {
+                           RCMessageStruct s = {
+                                   .messageId = successMessage.messageId,
+                                   .targetId  = [successMessage.targetId UTF8String]   // 临时指针，block 内安全
+                           };
+                           [listener onAttached:s];
+                       }
+
                    }
                successBlock:^(RCMessage *successMessage) {
                       //成功
                    NSLog(@"[RC] sendMessage success -> messageId=%ld",
                            successMessage.messageId);
+                   if (listener) {
+                       RCMessageStruct s = {
+                               .messageId = successMessage.messageId,
+                               .targetId  = [successMessage.targetId UTF8String]
+                       };
+                       [listener onSuccess:s];
+                   }
                }
                  errorBlock:^(RCErrorCode nErrorCode, RCMessage *errorMessage) {
                      //失败
                      NSLog(@"[RC] sendMessage error -> code=%ld, messageId=%ld",
                              (long)nErrorCode, errorMessage.messageId);
+                     if (listener) {
+                         RCMessageStruct s = {
+                                 .messageId = errorMessage.messageId,
+                                 .targetId  = [errorMessage.targetId UTF8String]
+                         };
+                         [listener onError:s errorCode:(int32_t)nErrorCode];
+                     }
                  }];
     });
 }
