@@ -76,3 +76,30 @@ void rongCloudSendMessage(int type, const char *targetId, const char *text, id <
 @end
 
 void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener);
+
+/**
+ * 定义参考Kotlin RCBlockedMessageInfo
+ * 消息被拦截时的信息
+ */
+typedef struct {
+    int32_t conversationType;  // 会话类型
+    const char *_Nullable targetId;  // 会话ID
+    const char *_Nullable channelId;  // 频道ID，可选
+    const char *_Nullable blockedMsgUId;  // 被拦截的消息UID
+    int32_t blockType;  // 拦截类型：1-全局敏感词，2-自定义敏感词，3-第三方审核
+    const char *_Nullable extra;  // 附加信息
+    long long sentTime;  // 消息发送时间
+    int32_t sourceType;  // 消息源触发类型
+    const char *_Nullable sourceContent;  // 源内容JSON字符串
+} RCBlockedMessageInfoStruct;
+
+@protocol RCMessageBlockListener <NSObject>
+- (void)onMessageBlock:(RCBlockedMessageInfoStruct)info;
+@end
+
+/***
+ * 添加消息拦截监听
+ * @param listener : Kotlin侧实现的监听器
+ */
+void rongCloudAddMessageBlockListener(id <RCMessageBlockListener> listener);
+

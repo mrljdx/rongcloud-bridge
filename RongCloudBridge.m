@@ -348,3 +348,47 @@ void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener) {
         }
     });
 }
+
+id <RCMessageBlockListener> gRcMessageBlockListener = NULL;
+
+@interface RongMessageBlockListener : NSObject <RCMessageBlockDelegate>
+@end
+
+@implementation RongMessageBlockListener
+- (void)messageDidBlock:(RCBlockedMessageInfo *)blockedMessageInfo {
+    NSLog(@"[RC] ⛔ messageDidBlock -> targetId=%@, blockType=%ld",
+            blockedMessageInfo.targetId, (long)blockedMessageInfo.blockType);
+
+    if (gRcMessageBlockListener && blockedMessageInfo) {
+        RCBlockedMessageInfoStruct info = {
+            .conversationType = (int32_t)blockedMessageInfo.type,
+            .targetId = [blockedMessageInfo.targetId UTF8String],
+            .channelId = blockedMessageInfo.channelId ? [blockedMessageInfo.channelId UTF8String] : NULL,
+            .blockedMsgUId = [blockedMessageInfo.blockedMsgUId UTF8String],
+            .blockType = (int32_t)blockedMessageInfo.blockType,
+            .extra = blockedMessageInfo.extra ? [blockedMessageInfo.extra UTF8String] : NULL,
+            .sentTime = blockedMessageInfo.sentTime,
+            .sourceType = (int32_t)blockedMessageInfo.sourceType,
+            .sourceContent = blockedMessageInfo.sourceContent ? [blockedMessageInfo.sourceContent UTF8String] : NULL
+        };
+        [gRcMessageBlockListener onMessageBlock:info];
+    }
+}
+@end
+
+static RongMessageBlockListener *gMessageBlockDelegate = nil;
+
+void rongCloudAddMessageBlockListener(id <RCMessageBlockListener> listener) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        gRcMessageBlockListener = listener;
+        if (listener && !gMessageBlockDelegate) {
+            gMessageBlockDelegate = [RongMessageBlockListener new];
+            [[RCCoreClient sharedCoreClient] setMessageBlockDelegate:gMessageBlockDelegate];
+            NSLog(@"[RC] ✅ registered message block delegate");
+        } else if (!listener && gMessageBlockDelegate) {
+            [[RCCoreClient sharedCoreClient] setMessageBlockDelegate:nil];
+            gMessageBlockDelegate = nil;
+            NSLog(@"[RC] ❌ removed message block delegate");
+        }
+    });
+}
