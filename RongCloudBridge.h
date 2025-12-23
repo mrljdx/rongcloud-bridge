@@ -8,7 +8,11 @@
 @interface KRCMessage : NSObject
 @property (nonatomic, assign) int64_t messageId;
 @property (nonatomic, copy, nonnull) NSString *targetId;
+@property (nonatomic, copy, nonnull) NSString *messageUId;
+@property (nonatomic, copy, nonnull) NSString *senderUserId;
 @property (nonatomic, copy, nonnull) NSString *content;
+@property (nonatomic, assign) int64_t sendTime;
+@property (nonatomic, assign) int64_t receivedTime;
 @end
 
 @interface KRCBlockedMessageInfo : NSObject

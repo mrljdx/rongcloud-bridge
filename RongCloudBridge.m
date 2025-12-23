@@ -236,8 +236,12 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
     if (self.callback) {
         KRCMessage *bridgeMsg = [KRCMessage new];
         bridgeMsg.messageId = message.messageId;
+        bridgeMsg.messageUId = message.messageUId;
         bridgeMsg.targetId = message.targetId;
+        bridgeMsg.senderUserId = message.senderUserId;
         bridgeMsg.content = getMessageContentText(message.content);
+        bridgeMsg.sendTime = message.sendTime;
+        bridgeMsg.receivedTime = message.receivedTime;
         [self.callback onReceive:bridgeMsg];
     }
 }
@@ -312,8 +316,12 @@ void rongCloudHistoryMessages(int type, NSString *targetId, int64_t oldestMessag
                 for (RCMessage *msg in messages) {
                     KRCMessage *bridgeMsg = [KRCMessage new];
                     bridgeMsg.messageId = msg.messageId;
+                    bridgeMsg.messageUId = msg.messageUId;
                     bridgeMsg.targetId = msg.targetId;
+                    bridgeMsg.senderUserId = msg.senderUserId;
                     bridgeMsg.content = getMessageContentText(msg.content);
+                    bridgeMsg.sendTime = msg.sendTime;
+                    bridgeMsg.receivedTime = msg.receivedTime;
                     [resultArray addObject:bridgeMsg];
                 }
                 [callback onSuccess:resultArray];
