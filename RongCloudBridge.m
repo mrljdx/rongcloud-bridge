@@ -21,7 +21,7 @@ static NSString* getMessageContentText(RCMessageContent *content) {
 
 void rongCloudInit(NSString *appKey, NSString *region) {
     if (!appKey || appKey.length == 0) {
-        NSLog(@"[RC] ❌ appKey is empty");
+        NSLog(@"[RC] ❌ Init Error: appKey is empty");
         return;
     }
 
@@ -39,24 +39,25 @@ void rongCloudInit(NSString *appKey, NSString *region) {
     initOption.areaCode = area;
 
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSLog(@"[RC] rongCloudInit: AppKey=%@, region=%@ → areaCode=%ld", appKey, regionName, (long)area);
+        NSLog(@"[RC] 🚀 rongCloudInit: AppKey=%@, region=%@, areaCode=%ld", appKey, regionName, (long)area);
         [[RCCoreClient sharedCoreClient] initWithAppKey:appKey option:initOption];
     });
 }
 
 void rongCloudConnect(NSString *token, id <RongCloudConnectCallback> callback) {
     dispatch_async(dispatch_get_main_queue(), ^{
-        NSLog(@"[RC] rongCloudConnect: token=%@", token);
+        NSLog(@"[RC] 🔗 Start connecting with token: %@", token);
         [[RCCoreClient sharedCoreClient] connectWithToken:token timeLimit:30
                                                  dbOpened:^(RCDBErrorCode dbCode) {
-                                                     if (callback) [callback onDBOpened:(int32_t)dbCode];
-                                                 } success:^(NSString *userId) {
-                    NSLog(@"[RC] connect success: userId=%@", userId);
-                    if (callback) [callback onSuccess:userId];
-                } error:^(RCConnectErrorCode errorCode) {
-                    NSLog(@"[RC] connect error: %ld", (long)errorCode);
-                    if (callback) [callback onError:(int32_t)errorCode];
-                }];
+            NSLog(@"[RC] 📂 Database opened with code: %ld", (long)dbCode);
+            if (callback) [callback onDBOpened:(int32_t)dbCode];
+        } success:^(NSString *userId) {
+            NSLog(@"[RC] ✅ Connect success, userId: %@", userId);
+            if (callback) [callback onSuccess:userId];
+        } error:^(RCConnectErrorCode errorCode) {
+            NSLog(@"[RC] ❌ Connect error code: %ld", (long)errorCode);
+            if (callback) [callback onError:(int32_t)errorCode];
+        }];
     });
 }
 
@@ -102,10 +103,12 @@ static RongDatabaseStatusListener *gDatabaseDelegate = nil;
 void rongCloudAddDatabaseStatusListener(id <RCDatabaseUpgradeCallback> listener) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (listener) {
+            NSLog(@"[RC] ➕ Adding database listener: %@", listener);
             gDatabaseDelegate = [RongDatabaseStatusListener new];
             gDatabaseDelegate.callback = listener;
             [[RCCoreClient sharedCoreClient] addDatabaseStatusDelegate:gDatabaseDelegate];
         } else {
+            NSLog(@"[RC] ➖ Removing database listener");
             [[RCCoreClient sharedCoreClient] removeDatabaseStatusDelegate:gDatabaseDelegate];
             gDatabaseDelegate = nil;
         }
@@ -119,6 +122,52 @@ void rongCloudAddDatabaseStatusListener(id <RCDatabaseUpgradeCallback> listener)
 
 @implementation RongConnectionStatusListener
 - (void)onConnectionStatusChanged:(RCConnectionStatus)status {
+    /** https://doc.rongcloud.cn/apidoc/imlibcore-ios/latest/zh_CN/documentation/rongimlibcore/rcconnectionstatus?language=objc */
+    NSLog(@"[RC] onConnectionStatusChanged rawCode = %ld", (long)status);
+    switch (status) {
+        case ConnectionStatus_Connected:
+            NSLog(@"[RC] ✅ 连接成功");
+            break;
+        case ConnectionStatus_Connecting:
+            NSLog(@"[RC] ⏳ 连接中...");
+            break;
+        case ConnectionStatus_DISCONN_EXCEPTION:
+            NSLog(@"[RC] ❌ 与服务器的连接已断开，用户被封禁");
+            break;
+        case ConnectionStatus_KICKED_OFFLINE_BY_OTHER_CLIENT:
+            NSLog(@"[RC] 🚪 当前用户在其他设备登录，此设备被踢下线");
+            break;
+        case ConnectionStatus_NETWORK_UNAVAILABLE:
+            NSLog(@"[RC] 📡 网络不可用，SDK 会自动重连");
+            break;
+        case ConnectionStatus_PROXY_UNAVAILABLE:
+            NSLog(@"[RC] 🧱 Proxy 不可用，需要检查代理后手动重连");
+            break;
+        case ConnectionStatus_SignOut:
+            NSLog(@"[RC] 🚪 已登出");
+            break;
+        case ConnectionStatus_Suspend:
+            NSLog(@"[RC] ⏸️ 连接被挂起（网络抖动），SDK 会自动重连");
+            break;
+        case ConnectionStatus_TOKEN_INCORRECT:
+            NSLog(@"[RC] 🔑 Token 无效/过期，需重新获取");
+            break;
+        case ConnectionStatus_Timeout:
+            NSLog(@"[RC] ⏱️ 自动连接超时，需手动重连");
+            break;
+        case ConnectionStatus_UNKNOWN:
+            NSLog(@"[RC] ❓ 未知临时状态，SDK 会自动重连");
+            break;
+        case ConnectionStatus_USER_ABANDON:
+            NSLog(@"[RC] 🗑️ 用户账号已销户，不再连接");
+            break;
+        case ConnectionStatus_Unconnected:
+            NSLog(@"[RC] 🔌 连接失败或未连接");
+            break;
+        default:
+            NSLog(@"[RC] ⚠️ 未映射状态 code=%ld", (long)status);
+            break;
+    }
     if (self.callback) [self.callback onChanged:(int32_t)status];
 }
 @end
@@ -127,6 +176,7 @@ static RongConnectionStatusListener *gConnDelegate = nil;
 void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listener) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (listener) {
+            NSLog(@"[RC] ➕ Adding connection status listener");
             gConnDelegate = [RongConnectionStatusListener new];
             gConnDelegate.callback = listener;
             [[RCCoreClient sharedCoreClient] addConnectionStatusChangeDelegate:gConnDelegate];
@@ -140,12 +190,12 @@ void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listen
 // 3. 消息发送
 void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSendMessageCallback> callback) {
     dispatch_async(dispatch_get_main_queue(), ^{
+        NSLog(@"[RC] ✉️ Sending message to: %@", targetId);
         RCTextMessage *msgContent = [RCTextMessage messageWithContent:text];
-        RCConversationType convType = (RCConversationType)type; // 假设 Kotlin 传过来的 int 已对齐
-
-        RCMessage *rcMsg = [[RCMessage alloc] initWithType:convType targetId:targetId direction:MessageDirection_SEND content:msgContent];
+        RCMessage *rcMsg = [[RCMessage alloc] initWithType:(RCConversationType)type targetId:targetId direction:MessageDirection_SEND content:msgContent];
 
         [[RCCoreClient sharedCoreClient] sendMessage:rcMsg pushContent:nil pushData:nil attached:^(RCMessage *message) {
+            NSLog(@"[RC] 📝 Message attached: id=%ld", message.messageId);
             if (callback) {
                 KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
@@ -153,6 +203,7 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
                 [callback onAttached:bridgeMsg];
             }
         } successBlock:^(RCMessage *message) {
+            NSLog(@"[RC] ✅ Message send success: id=%ld", message.messageId);
             if (callback) {
                 KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
@@ -160,6 +211,7 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
                 [callback onSuccess:bridgeMsg];
             }
         } errorBlock:^(RCErrorCode nErrorCode, RCMessage *message) {
+            NSLog(@"[RC] ❌ Message send error: %ld", (long)nErrorCode);
             if (callback) {
                 KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
@@ -177,6 +229,10 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
 
 @implementation RongReceiveMessageListener
 - (void)onReceived:(RCMessage *)message left:(int)nLeft object:(id)object offline:(BOOL)offline hasPackage:(BOOL)hasPackage {
+    NSLog(@"[RC] 📥 Native Received Message, id: %ld, left: %d", message.messageId, nLeft);
+    if (!self.callback) {
+        NSLog(@"[RC] ⚠️ Critical Error: Receive callback is NIL! Kotlin instance might be destroyed.");
+    }
     if (self.callback) {
         KRCMessage *bridgeMsg = [KRCMessage new];
         bridgeMsg.messageId = message.messageId;
@@ -191,10 +247,12 @@ static RongReceiveMessageListener *gReceiveDelegate = nil;
 void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (listener) {
+            NSLog(@"[RC] ➕ Registering Receive Delegate");
             gReceiveDelegate = [RongReceiveMessageListener new];
             gReceiveDelegate.callback = listener;
             [[RCCoreClient sharedCoreClient] addReceiveMessageDelegate:gReceiveDelegate];
         } else {
+            NSLog(@"[RC] ➖ Removing Receive Delegate");
             [[RCCoreClient sharedCoreClient] removeReceiveMessageDelegate:gReceiveDelegate];
             gReceiveDelegate = nil;
         }
@@ -208,17 +266,17 @@ void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener) {
 
 @implementation RongMessageBlockListener
 - (void)messageDidBlock:(RCBlockedMessageInfo *)info {
-    if (self.callback && info) {
+    NSLog(@"[RC] 🛡 Message blocked, targetId: %@", info.targetId);
+    if (self.callback) {
         KRCBlockedMessageInfo *bridgeInfo = [KRCBlockedMessageInfo new];
-        bridgeInfo.conversationType = (int32_t)info.type;
-        bridgeInfo.targetId = info.targetId;
-        bridgeInfo.channelId = info.channelId;
-        bridgeInfo.blockedMsgUId = info.blockedMsgUId;
         bridgeInfo.blockType = (int32_t)info.blockType;
+        bridgeInfo.targetId = info.targetId;
+        bridgeInfo.blockedMsgUId = info.blockedMsgUId;
         bridgeInfo.extra = info.extra;
-        bridgeInfo.sentTime = info.sentTime;
-        bridgeInfo.sourceType = (int32_t)info.sourceType;
         bridgeInfo.sourceContent = info.sourceContent;
+        bridgeInfo.sourceType = (int32_t)info.sourceType;
+        bridgeInfo.conversationType = (int32_t)info.type;
+        bridgeInfo.channelId = info.channelId;
         [self.callback onMessageBlock:bridgeInfo];
     }
 }
@@ -228,6 +286,7 @@ static RongMessageBlockListener *gBlockDelegate = nil;
 void rongCloudAddMessageBlockListener(id <RCMessageBlockListener> listener) {
     dispatch_async(dispatch_get_main_queue(), ^{
         if (listener) {
+            NSLog(@"[RC] ➕ Adding Message Block Delegate");
             gBlockDelegate = [RongMessageBlockListener new];
             gBlockDelegate.callback = listener;
             [[RCCoreClient sharedCoreClient] setMessageBlockDelegate:gBlockDelegate];
@@ -241,23 +300,25 @@ void rongCloudAddMessageBlockListener(id <RCMessageBlockListener> listener) {
 // 6. 历史消息
 void rongCloudHistoryMessages(int type, NSString *targetId, int64_t oldestMessageId, int32_t count, id <RCHistoryMessagesCallback> callback) {
     dispatch_async(dispatch_get_main_queue(), ^{
+        NSLog(@"[RC] 📖 Fetching history messages for target: %@", targetId);
         [[RCCoreClient sharedCoreClient] getHistoryMessages:(RCConversationType)type
                                                    targetId:targetId
                                             oldestMessageId:oldestMessageId
                                                       count:count
                                                  completion:^(NSArray<RCMessage *> *messages) {
-        if (callback) {
-            NSMutableArray<KRCMessage *> *resultArray = [NSMutableArray array];
-            for (RCMessage *msg in messages) {
-                KRCMessage *bridgeMsg = [KRCMessage new];
-                bridgeMsg.messageId = msg.messageId;
-                bridgeMsg.targetId = msg.targetId;
-                bridgeMsg.content = getMessageContentText(msg.content);
-                [resultArray addObject:bridgeMsg];
+            NSLog(@"[RC] 📖 History fetch completed, count: %lu", (unsigned long)messages.count);
+            if (callback) {
+                NSMutableArray<KRCMessage *> *resultArray = [NSMutableArray array];
+                for (RCMessage *msg in messages) {
+                    KRCMessage *bridgeMsg = [KRCMessage new];
+                    bridgeMsg.messageId = msg.messageId;
+                    bridgeMsg.targetId = msg.targetId;
+                    bridgeMsg.content = getMessageContentText(msg.content);
+                    [resultArray addObject:bridgeMsg];
+                }
+                [callback onSuccess:resultArray];
             }
-            [callback onSuccess:resultArray];
-        }
-    }];
+        }];
     });
 }
 
@@ -265,6 +326,7 @@ void rongCloudHistoryMessages(int type, NSString *targetId, int64_t oldestMessag
 void rongCloudTotalUnreadCount(id <RCUnreadCountCallback> callback) {
     dispatch_async(dispatch_get_main_queue(), ^{
         [[RCCoreClient sharedCoreClient] getTotalUnreadCountWith:^(int unreadCount) {
+            NSLog(@"[RC] 🔢 Total unread count: %d", unreadCount);
             if (callback) {
                 [callback onSuccess:(int32_t)unreadCount];
             }
