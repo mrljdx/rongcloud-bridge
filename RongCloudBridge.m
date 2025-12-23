@@ -260,3 +260,27 @@ void rongCloudHistoryMessages(int type, NSString *targetId, int64_t oldestMessag
     }];
     });
 }
+
+// 获取所有会话未读消息数
+void rongCloudTotalUnreadCount(id <RCUnreadCountCallback> callback) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[RCCoreClient sharedCoreClient] getTotalUnreadCountWith:^(int unreadCount) {
+            if (callback) {
+                [callback onSuccess:(int32_t)unreadCount];
+            }
+        }];
+    });
+}
+
+// 获取指定会话的总未读消息数
+void rongCloudUnreadCount(int type, NSString *targetId, id <RCUnreadCountCallback> callback) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [[RCCoreClient sharedCoreClient] getUnreadCount:(RCConversationType)type
+                                               targetId:targetId
+                                             completion:^(int count) {
+             if (callback) {
+                 [callback onSuccess:(int32_t)count];
+             }
+        }];
+    });
+}

@@ -61,6 +61,11 @@
 - (void)onError:(int32_t)errorCode;
 @end
 
+@protocol RCUnreadCountCallback <NSObject>
+- (void)onSuccess:(int32_t)count;
+- (void)onError:(int32_t)errorCode;
+@end
+
 /* --- C 接口函数 --- */
 
 // 初始化
@@ -87,4 +92,8 @@ void rongCloudReceiveMessage(id<RCReceiveMessageListener> _Nonnull listener);
 // 获取历史消息
 // 注意：oldestMessageId 和 count 改为传值，避免指针管理麻烦
 void rongCloudHistoryMessages(int type, NSString *_Nonnull targetId, int64_t oldestMessageId, int32_t count, id<RCHistoryMessagesCallback> _Nullable callback);
+
+void rongCloudTotalUnreadCount(id<RCUnreadCountCallback> _Nullable callback);
+
+void rongCloudUnreadCount(int type, NSString *_Nonnull targetId, id<RCUnreadCountCallback> _Nullable callback);
 
