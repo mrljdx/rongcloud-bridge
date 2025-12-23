@@ -3,10 +3,10 @@
 
 /* --- 数据模型实现 (必须实现，否则无法实例化) --- */
 
-@implementation RCMessage
+@implementation KRCMessage
 @end
 
-@implementation RCBlockedMessageInfo
+@implementation KRCBlockedMessageInfo
 @end
 
 /* --- 私有辅助方法：将融云 SDK 的消息内容转为字符串 --- */
@@ -147,21 +147,21 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
 
         [[RCCoreClient sharedCoreClient] sendMessage:rcMsg pushContent:nil pushData:nil attached:^(RCMessage *message) {
             if (callback) {
-                RCMessage *bridgeMsg = [RCMessage new];
+                KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
                 bridgeMsg.targetId = message.targetId;
                 [callback onAttached:bridgeMsg];
             }
         } successBlock:^(RCMessage *message) {
             if (callback) {
-                RCMessage *bridgeMsg = [RCMessage new];
+                KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
                 bridgeMsg.targetId = message.targetId;
                 [callback onSuccess:bridgeMsg];
             }
         } errorBlock:^(RCErrorCode nErrorCode, RCMessage *message) {
             if (callback) {
-                RCMessage *bridgeMsg = [RCMessage new];
+                KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
                 bridgeMsg.targetId = message.targetId;
                 [callback onError:bridgeMsg errorCode:(int32_t)nErrorCode];
@@ -178,7 +178,7 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
 @implementation RongReceiveMessageListener
 - (void)onReceived:(RCMessage *)message left:(int)nLeft object:(id)object offline:(BOOL)offline hasPackage:(BOOL)hasPackage {
     if (self.callback) {
-        RCMessage *bridgeMsg = [RCMessage new];
+        KRCMessage *bridgeMsg = [KRCMessage new];
         bridgeMsg.messageId = message.messageId;
         bridgeMsg.targetId = message.targetId;
         bridgeMsg.content = getMessageContentText(message.content);
@@ -209,7 +209,7 @@ void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener) {
 @implementation RongMessageBlockListener
 - (void)messageDidBlock:(RCBlockedMessageInfo *)info {
     if (self.callback && info) {
-        RCBlockedMessageInfo *bridgeInfo = [RCBlockedMessageInfo new];
+        KRCBlockedMessageInfo *bridgeInfo = [KRCBlockedMessageInfo new];
         bridgeInfo.conversationType = (int32_t)info.type;
         bridgeInfo.targetId = info.targetId;
         bridgeInfo.channelId = info.channelId;
@@ -247,9 +247,9 @@ void rongCloudHistoryMessages(int type, NSString *targetId, int64_t oldestMessag
                                                       count:count
                                                  completion:^(NSArray<RCMessage *> *messages) {
         if (callback) {
-            NSMutableArray<RCMessage *> *resultArray = [NSMutableArray array];
+            NSMutableArray<KRCMessage *> *resultArray = [NSMutableArray array];
             for (RCMessage *msg in messages) {
-                RCMessage *bridgeMsg = [RCMessage new];
+                KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = msg.messageId;
                 bridgeMsg.targetId = msg.targetId;
                 bridgeMsg.content = getMessageContentText(msg.content);

@@ -5,13 +5,13 @@
  * 将结构体改为类，以便在 NSArray 中使用
  * Kotlin 侧会自动将其识别为类对象
  */
-@interface RCMessage : NSObject
+@interface KRCMessage : NSObject
 @property (nonatomic, assign) int64_t messageId;
 @property (nonatomic, copy, nonnull) NSString *targetId;
 @property (nonatomic, copy, nonnull) NSString *content;
 @end
 
-@interface RCBlockedMessageInfo : NSObject
+@interface KRCBlockedMessageInfo : NSObject
 @property (nonatomic, assign) int32_t conversationType;
 @property (nonatomic, copy, nullable) NSString *targetId;
 @property (nonatomic, copy, nullable) NSString *channelId;
@@ -42,22 +42,22 @@
 @end
 
 @protocol RCSendMessageCallback <NSObject>
-- (void)onAttached:(RCMessage *_Nonnull)message;
-- (void)onSuccess:(RCMessage *_Nonnull)message;
-- (void)onError:(RCMessage *_Nonnull)message errorCode:(int32_t)errorCode;
+- (void)onAttached:(KRCMessage *_Nonnull)message;
+- (void)onSuccess:(KRCMessage *_Nonnull)message;
+- (void)onError:(KRCMessage *_Nonnull)message errorCode:(int32_t)errorCode;
 @end
 
 @protocol RCReceiveMessageListener <NSObject>
-- (void)onReceive:(RCMessage *_Nonnull)message;
+- (void)onReceive:(KRCMessage *_Nonnull)message;
 @end
 
 @protocol RCMessageBlockListener <NSObject>
-- (void)onMessageBlock:(RCBlockedMessageInfo *_Nonnull)info;
+- (void)onMessageBlock:(KRCBlockedMessageInfo *_Nonnull)info;
 @end
 
 @protocol RCHistoryMessagesCallback <NSObject>
-// 现在 NSArray 可以正确持有 RCMessage 对象了
-- (void)onSuccess:(NSArray<RCMessage *> *_Nonnull)messages;
+// 现在 NSArray 可以正确持有 KRCMessage 对象了
+- (void)onSuccess:(NSArray<KRCMessage *> *_Nonnull)messages;
 - (void)onError:(int32_t)errorCode;
 @end
 
