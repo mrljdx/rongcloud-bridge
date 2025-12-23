@@ -1,105 +1,90 @@
 #import <Foundation/Foundation.h>
+/* --- 数据模型定义 --- */
 
-/* Kotlin 调用的 C 接口 */
-void rongCloudInit(const char *appKey, const char *region);
-
-/* Kotlin 侧定义的回调接口 */
-@protocol RongCloudConnectCallback <NSObject>
-- (void)onDBOpened:(int32_t)dbErrorCode;      // RCDBErrorCode
-- (void)onSuccess:(const char *)userId;
-
-- (void)onError:(int32_t)connectErrorCode;    // RCConnectErrorCode
+/**
+ * 将结构体改为类，以便在 NSArray 中使用
+ * Kotlin 侧会自动将其识别为类对象
+ */
+@interface RCMessage : NSObject
+@property (nonatomic, assign) int64_t messageId;
+@property (nonatomic, copy, nonnull) NSString *targetId;
+@property (nonatomic, copy, nonnull) NSString *content;
 @end
 
-/** 连接融云 **/
-void rongCloudConnect(const char *token, _Nullable id <RongCloudConnectCallback> callback);
+@interface RCBlockedMessageInfo : NSObject
+@property (nonatomic, assign) int32_t conversationType;
+@property (nonatomic, copy, nullable) NSString *targetId;
+@property (nonatomic, copy, nullable) NSString *channelId;
+@property (nonatomic, copy, nullable) NSString *blockedMsgUId;
+@property (nonatomic, assign) int32_t blockType;
+@property (nonatomic, copy, nullable) NSString *extra;
+@property (nonatomic, assign) long long sentTime;
+@property (nonatomic, assign) int32_t sourceType;
+@property (nonatomic, copy, nullable) NSString *sourceContent;
+@end
 
-/** 断开连接 **/
-void rongCloudDisconnect(bool allowPush);
+/* --- 回调接口定义 --- */
 
-/** 重连机制与重连互踢 **/
-void rongCloudReconnectEnable(bool enable);
+@protocol RongCloudConnectCallback <NSObject>
+- (void)onDBOpened:(int32_t)dbErrorCode;
+- (void)onSuccess:(NSString *_Nonnull)userId;
+- (void)onError:(int32_t)connectErrorCode;
+@end
 
-/** 获取当前连接状态，返回映射后的整数 **/
-int32_t rongCloudGetConnectionStatus(void);
-
-/* Kotlin 侧定义的回调接口 */
 @protocol RCDatabaseUpgradeCallback <NSObject>
 - (void)upgradeWillStart;
-
 - (void)upgrading:(int32_t)progress;
-
 - (void)upgradeComplete:(int32_t)code;
 @end
 
-void rongCloudAddDatabaseStatusListener(id <RCDatabaseUpgradeCallback> listener);
-
-/** 获取当前 SDK 版本号 **/
-const char *rongCloudGetSDKVersion(void);
-
-/* Kotlin 侧定义的回调接口 */
 @protocol RCConnectionStatusListener <NSObject>
 - (void)onChanged:(int32_t)status;
 @end
 
-/** 添加连接状态的监听 **/
-void rongCloudAddConnectionStatusListener(id <RCConnectionStatusListener> listener);
-
-/**
- * 定义参考Kotlin RCMessage
- */
-typedef struct {
-    int64_t messageId;
-    const char *_Nonnull targetId;
-    const char *_Nonnull content;
-} RCMessageStruct;
-
 @protocol RCSendMessageCallback <NSObject>
-- (void)onAttached:(RCMessageStruct)message;
-
-- (void)onSuccess:(RCMessageStruct)message;
-
-- (void)onError:(RCMessageStruct)message
-        errorCode:(int32_t)errorCode;
+- (void)onAttached:(RCMessage *_Nonnull)message;
+- (void)onSuccess:(RCMessage *_Nonnull)message;
+- (void)onError:(RCMessage *_Nonnull)message errorCode:(int32_t)errorCode;
 @end
-
-/***
- * 发送一条消息
- * @param type : 1 private
- * @param targetId : 目标用户ID
- * @param text : 文本内容
- */
-void rongCloudSendMessage(int type, const char *targetId, const char *text, id <RCSendMessageCallback> callback);
 
 @protocol RCReceiveMessageListener <NSObject>
-- (void)onReceive:(RCMessageStruct)message;
+- (void)onReceive:(RCMessage *_Nonnull)message;
 @end
-
-void rongCloudReceiveMessage(id <RCReceiveMessageListener> listener);
-
-/**
- * 定义参考Kotlin RCBlockedMessageInfo
- * 消息被拦截时的信息
- */
-typedef struct {
-    int32_t conversationType;  // 会话类型
-    const char *_Nullable targetId;  // 会话ID
-    const char *_Nullable channelId;  // 频道ID，可选
-    const char *_Nullable blockedMsgUId;  // 被拦截的消息UID
-    int32_t blockType;  // 拦截类型：1-全局敏感词，2-自定义敏感词，3-第三方审核
-    const char *_Nullable extra;  // 附加信息
-    long long sentTime;  // 消息发送时间
-    int32_t sourceType;  // 消息源触发类型
-    const char *_Nullable sourceContent;  // 源内容JSON字符串
-} RCBlockedMessageInfoStruct;
 
 @protocol RCMessageBlockListener <NSObject>
-- (void)onMessageBlock:(RCBlockedMessageInfoStruct)info;
+- (void)onMessageBlock:(RCBlockedMessageInfo *_Nonnull)info;
 @end
 
-/***
- * 添加消息拦截监听
- * @param listener : Kotlin侧实现的监听器
- */
-void rongCloudAddMessageBlockListener(id <RCMessageBlockListener> listener);
+@protocol RCHistoryMessagesCallback <NSObject>
+// 现在 NSArray 可以正确持有 RCMessage 对象了
+- (void)onSuccess:(NSArray<RCMessage *> *_Nonnull)messages;
+- (void)onError:(int32_t)errorCode;
+@end
+
+/* --- C 接口函数 --- */
+
+// 初始化
+void rongCloudInit(NSString *_Nonnull appKey, NSString *_Nonnull region);
+
+// 连接与断开
+void rongCloudConnect(NSString *_Nonnull token, id<RongCloudConnectCallback> _Nullable callback);
+void rongCloudDisconnect(bool allowPush);
+
+// 重连与状态
+void rongCloudReconnectEnable(bool enable);
+int32_t rongCloudGetConnectionStatus(void);
+const char *_Nonnull rongCloudGetSDKVersion(void);
+
+// 监听器注册
+void rongCloudAddDatabaseStatusListener(id<RCDatabaseUpgradeCallback> _Nonnull listener);
+void rongCloudAddConnectionStatusListener(id<RCConnectionStatusListener> _Nonnull listener);
+void rongCloudAddMessageBlockListener(id<RCMessageBlockListener> _Nonnull listener);
+
+// 消息操作
+void rongCloudSendMessage(int type, NSString *_Nonnull targetId, NSString *_Nonnull text, id<RCSendMessageCallback> _Nullable callback);
+void rongCloudReceiveMessage(id<RCReceiveMessageListener> _Nonnull listener);
+
+// 获取历史消息
+// 注意：oldestMessageId 和 count 改为传值，避免指针管理麻烦
+void rongCloudHistoryMessages(int type, NSString *_Nonnull targetId, int64_t oldestMessageId, int32_t count, id<RCHistoryMessagesCallback> _Nullable callback);
 
