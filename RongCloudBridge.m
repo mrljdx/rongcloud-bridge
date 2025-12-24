@@ -199,7 +199,12 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
             if (callback) {
                 KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
+                bridgeMsg.messageUId = message.messageUId;
                 bridgeMsg.targetId = message.targetId;
+                bridgeMsg.senderUserId = message.senderUserId;
+                bridgeMsg.content = getMessageContentText(message.content);
+                bridgeMsg.sendTime = message.sentTime;
+                bridgeMsg.receivedTime = message.receivedTime;
                 [callback onAttached:bridgeMsg];
             }
         } successBlock:^(RCMessage *message) {
@@ -207,7 +212,12 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
             if (callback) {
                 KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
+                bridgeMsg.messageUId = message.messageUId;
                 bridgeMsg.targetId = message.targetId;
+                bridgeMsg.senderUserId = message.senderUserId;
+                bridgeMsg.content = getMessageContentText(message.content);
+                bridgeMsg.sendTime = message.sentTime;
+                bridgeMsg.receivedTime = message.receivedTime;
                 [callback onSuccess:bridgeMsg];
             }
         } errorBlock:^(RCErrorCode nErrorCode, RCMessage *message) {
@@ -215,7 +225,12 @@ void rongCloudSendMessage(int type, NSString *targetId, NSString *text, id <RCSe
             if (callback) {
                 KRCMessage *bridgeMsg = [KRCMessage new];
                 bridgeMsg.messageId = message.messageId;
+                bridgeMsg.messageUId = message.messageUId;
                 bridgeMsg.targetId = message.targetId;
+                bridgeMsg.senderUserId = message.senderUserId;
+                bridgeMsg.content = getMessageContentText(message.content);
+                bridgeMsg.sendTime = message.sentTime;
+                bridgeMsg.receivedTime = message.receivedTime;
                 [callback onError:bridgeMsg errorCode:(int32_t)nErrorCode];
             }
         }];
