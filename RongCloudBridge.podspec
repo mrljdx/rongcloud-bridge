@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'RongCloudBridge'
-  s.version          = '0.1.10'
+  s.version          = '0.1.11'
   s.summary          = 'RongCloud IM KMP Bridge'
   s.description      = 'RongCloud IM KMP Bridge'
   s.homepage         = 'https://github.com/mrljdx/rongcloud-bridge'

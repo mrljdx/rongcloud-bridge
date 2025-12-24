@@ -379,7 +379,7 @@ void rongCloudGetConversationList(NSArray<NSNumber *> *_Nullable conversationTyp
         NSLog(@"[RC] 💬 Fetching conversation list, count: %d, startTime: %lld, topPriority: %d", count, startTime, topPriority);
 
         // 如果没有指定会话类型，获取所有会话类型
-        NSArray<NSNumber *> *types = conversationTypeList ?: @[@(ConversationType_PRIVATE), @(ConversationType_GROUP), @(ConversationType_DISCUSSION), @(ConversationType_CHATROOM), @(ConversationType_CUSTOMER_SERVICE), @(ConversationType_SYSTEM), @(ConversationType_APP_PUBLIC_SERVICE), @(ConversationType_PUBLIC_SERVICE), @(ConversationType_PUSH_SERVICE)];
+        NSArray<NSNumber *> *types = conversationTypeList;
 
         [[RCCoreClient sharedCoreClient] getConversationList:types
                                                        count:count
@@ -395,12 +395,12 @@ void rongCloudGetConversationList(NSArray<NSNumber *> *_Nullable conversationTyp
                     bridgeConv.targetId = conv.targetId;
                     bridgeConv.channelId = conv.channelId;
                     bridgeConv.conversationTitle = conv.conversationTitle;
-                    bridgeConv.portraitUrl = conv.portraitUrl;
+                    bridgeConv.portraitUrl = @"";
                     bridgeConv.unreadMessageCount = (int32_t)conv.unreadMessageCount;
                     bridgeConv.isTop = conv.isTop;
                     bridgeConv.isTopForTag = conv.isTopForTag;
                     bridgeConv.operationTime = conv.operationTime;
-                    bridgeConv.senderUserName = conv.senderUserName;
+                    bridgeConv.senderUserName = @"";
                     bridgeConv.senderUserId = conv.senderUserId;
                     bridgeConv.draft = conv.draft;
                     [resultArray addObject:bridgeConv];
