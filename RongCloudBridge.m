@@ -9,6 +9,9 @@
 @implementation KRCBlockedMessageInfo
 @end
 
+@implementation KRCConversation
+@end
+
 /* --- 私有辅助方法：将融云 SDK 的消息内容转为字符串 --- */
 static NSString* getMessageContentText(RCMessageContent *content) {
     if ([content isKindOfClass:[RCTextMessage class]]) {
@@ -366,6 +369,44 @@ void rongCloudUnreadCount(int type, NSString *targetId, id <RCUnreadCountCallbac
              if (callback) {
                  [callback onSuccess:(int32_t)count];
              }
+        }];
+    });
+}
+
+// 7. 获取会话列表
+void rongCloudGetConversationList(NSArray<NSNumber *> *_Nullable conversationTypeList, int32_t count, int64_t startTime, bool topPriority, id<RCConversationCallback> _Nullable callback) {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        NSLog(@"[RC] 💬 Fetching conversation list, count: %d, startTime: %lld, topPriority: %d", count, startTime, topPriority);
+
+        // 如果没有指定会话类型，获取所有会话类型
+        NSArray<NSNumber *> *types = conversationTypeList ?: @[@(ConversationType_PRIVATE), @(ConversationType_GROUP), @(ConversationType_DISCUSSION), @(ConversationType_CHATROOM), @(ConversationType_CUSTOMER_SERVICE), @(ConversationType_SYSTEM), @(ConversationType_APP_PUBLIC_SERVICE), @(ConversationType_PUBLIC_SERVICE), @(ConversationType_PUSH_SERVICE)];
+
+        [[RCCoreClient sharedCoreClient] getConversationList:types
+                                                       count:count
+                                                   startTime:startTime
+                                                 topPriority:topPriority
+                                                  completion:^(NSArray<RCConversation *> *conversationList) {
+            NSLog(@"[RC] 💬 Conversation list fetched, count: %lu", (unsigned long)conversationList.count);
+            if (callback) {
+                NSMutableArray<KRCConversation *> *resultArray = [NSMutableArray array];
+                for (RCConversation *conv in conversationList) {
+                    KRCConversation *bridgeConv = [KRCConversation new];
+                    bridgeConv.conversationType = (int32_t)conv.conversationType;
+                    bridgeConv.targetId = conv.targetId;
+                    bridgeConv.channelId = conv.channelId;
+                    bridgeConv.conversationTitle = conv.conversationTitle;
+                    bridgeConv.portraitUrl = conv.portraitUrl;
+                    bridgeConv.unreadMessageCount = (int32_t)conv.unreadMessageCount;
+                    bridgeConv.isTop = conv.isTop;
+                    bridgeConv.isTopForTag = conv.isTopForTag;
+                    bridgeConv.operationTime = conv.operationTime;
+                    bridgeConv.senderUserName = conv.senderUserName;
+                    bridgeConv.senderUserId = conv.senderUserId;
+                    bridgeConv.draft = conv.draft;
+                    [resultArray addObject:bridgeConv];
+                }
+                [callback onSuccess:resultArray];
+            }
         }];
     });
 }

@@ -27,6 +27,21 @@
 @property (nonatomic, copy, nullable) NSString *sourceContent;
 @end
 
+@interface KRCConversation : NSObject
+@property (nonatomic, assign) int32_t conversationType;
+@property (nonatomic, copy, nullable) NSString *targetId;
+@property (nonatomic, copy, nullable) NSString *channelId;
+@property (nonatomic, copy, nullable) NSString *conversationTitle;
+@property (nonatomic, copy, nullable) NSString *portraitUrl;
+@property (nonatomic, assign) int32_t unreadMessageCount;
+@property (nonatomic, assign) BOOL isTop;
+@property (nonatomic, assign) BOOL isTopForTag;
+@property (nonatomic, assign) int64_t operationTime;
+@property (nonatomic, copy, nullable) NSString *senderUserName;
+@property (nonatomic, copy, nullable) NSString *senderUserId;
+@property (nonatomic, copy, nullable) NSString *draft;
+@end
+
 /* --- 回调接口定义 --- */
 
 @protocol RongCloudConnectCallback <NSObject>
@@ -70,6 +85,10 @@
 - (void)onError:(int32_t)errorCode;
 @end
 
+@protocol RCConversationCallback <NSObject>
+- (void)onSuccess:(NSArray<KRCConversation *> *_Nonnull)conversations;
+@end
+
 /* --- C 接口函数 --- */
 
 // 初始化
@@ -100,4 +119,6 @@ void rongCloudHistoryMessages(int type, NSString *_Nonnull targetId, int64_t old
 void rongCloudTotalUnreadCount(id<RCUnreadCountCallback> _Nullable callback);
 
 void rongCloudUnreadCount(int type, NSString *_Nonnull targetId, id<RCUnreadCountCallback> _Nullable callback);
+
+void rongCloudGetConversationList(NSArray<NSNumber *> *_Nullable conversationTypeList, int32_t count, int64_t startTime, bool topPriority, id<RCConversationCallback> _Nullable callback);
 
